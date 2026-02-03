@@ -6,6 +6,7 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("移动参数")]
     public float moveSpeed = 5f;
+    public float sprintSpeed = 10f;
     public float acceleration = 15f;
     public float friction = 8f;
 
@@ -16,12 +17,13 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask groundLayer = 1;
 
     [Header("组件引用")]
-    private Rigidbody rb; // 使用3D Rigidbody
+    private Rigidbody rb;
     private Vector3 movementInput;
     private Vector3 currentVelocity;
 
     private bool isGrounded;
     private bool jumpRequested;
+    private bool isSprinting;
 
     void Start()
     {
@@ -39,6 +41,8 @@ public class PlayerMovement : MonoBehaviour
         HandleInput();
         CheckGrounded();
 
+        isSprinting = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             jumpRequested = true;
@@ -55,19 +59,13 @@ public class PlayerMovement : MonoBehaviour
     void HandleInput()
     {
         float horizontal = 0f;
-        float vertical = 0f;
 
-
-        if (Input.GetKey(KeyCode.W)) vertical += 1f;
-        
-        if (Input.GetKey(KeyCode.S)) vertical -= 1f;
-        
         if (Input.GetKey(KeyCode.A)) horizontal -= 1f;
 
         if (Input.GetKey(KeyCode.D)) horizontal += 1f; 
 
 
-        movementInput = new Vector3(horizontal, 0f, vertical);
+        movementInput = new Vector3(horizontal, 0f, 0f);
 
         if (movementInput.magnitude > 1f)
         {
@@ -90,7 +88,9 @@ public class PlayerMovement : MonoBehaviour
 
     void ApplyMovementWithFriction()
     {
-        Vector3 targetVelocity = movementInput * moveSpeed;
+        float currentSpeed = isSprinting ? sprintSpeed : moveSpeed;
+
+        Vector3 targetVelocity = movementInput * currentSpeed;
 
         if (movementInput.magnitude > 0.1f)
         {
@@ -101,7 +101,8 @@ public class PlayerMovement : MonoBehaviour
             currentVelocity = Vector3.MoveTowards(currentVelocity, Vector3.zero, friction * Time.fixedDeltaTime);
         }
 
-        Vector3 newVelocity = new Vector3(currentVelocity.x, rb.velocity.y, currentVelocity.z);
+        Vector3 newVelocity = new Vector3(currentVelocity.x, rb.velocity.y, 0f);
+
         rb.velocity = newVelocity;
     }
 
@@ -109,7 +110,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (jumpRequested && isGrounded)
         {
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce, rb.velocity.z);
+            rb.velocity = new Vector3(rb.velocity.x, jumpForce, 0f);
 
             jumpRequested = false;
 
@@ -124,4 +125,18 @@ public class PlayerMovement : MonoBehaviour
             rb.velocity += Vector3.up * Physics.gravity.y * (gravityMultiplier - 1) * Time.fixedDeltaTime;
         }
     }
+
+    public string GetMovementState()
+    {
+        if (movementInput.magnitude > 0.1f)
+        {
+            return isSprinting ? "疾跑中" : "行走中";
+        }
+        else
+        {
+            return "静止";
+        }
+    }
+
+
 }
